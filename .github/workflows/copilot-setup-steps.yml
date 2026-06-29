@@ -31,3 +31,13 @@ jobs:
                       gcc \
                       g++ \
                       pkg-config
+
+            - name: Verify tool versions
+              run: |
+                  autoconf --version | head -1
+                  automake --version | head -1
+                  libtool --version | head -1
+                  make --version | head -1
+                  gcc --version | head -1
+                  g++ --version | head -1
+                  pkg-config --version
