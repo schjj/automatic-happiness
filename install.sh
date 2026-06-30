@@ -2,6 +2,12 @@
 
 set -euo pipefail
 
+# Several steps (ollama install, writing systemd units) require root.
+if [ "$(id -u)" -ne 0 ]; then
+  echo "Error: This script must be run as root (or with sudo)." >&2
+  exit 1
+fi
+
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$repo_root"
 
@@ -9,9 +15,14 @@ echo "Installing ollama via https://ollama.com/install.sh ..."
 curl -fsSL https://ollama.com/install.sh | sh
 echo "ollama installed successfully."
 
-echo "Starting ollama service..."
-if ! pgrep -x ollama &>/dev/null; then
-  ollama serve &>/dev/null &
+echo "Enabling ollama service to start on boot..."
+if command -v systemctl &>/dev/null; then
+  systemctl enable --now ollama
+else
+  # Fallback for non-systemd hosts
+  if ! pgrep -x ollama &>/dev/null; then
+    ollama serve &>/dev/null &
+  fi
 fi
 echo "Waiting for ollama to be ready..."
 for i in $(seq 1 30); do
@@ -37,6 +48,9 @@ echo "Installing Open WebUI (AI agent) via Docker..."
 if ! command -v docker &>/dev/null; then
   echo "Error: Docker is not installed or not in PATH. Please install Docker first." >&2
   exit 1
+fi
+if command -v systemctl &>/dev/null; then
+  systemctl enable docker 2>/dev/null || true
 fi
 if docker ps -a --format '{{.Names}}' | grep -q '^open-webui$'; then
   echo "open-webui container already exists — skipping creation."
@@ -113,6 +127,28 @@ else
 fi
 cd "$repo_root"
 echo "Firecrawl API is running at http://localhost:3002"
+if command -v systemctl &>/dev/null; then
+  cat > /etc/systemd/system/firecrawl.service <<EOF
+[Unit]
+Description=Firecrawl LLM web scraper
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=$FIRECRAWL_DIR
+ExecStart=$(command -v docker) compose up -d
+ExecStop=$(command -v docker) compose down
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl daemon-reload
+  systemctl enable firecrawl
+  echo "Firecrawl systemd service enabled (auto-starts on boot)."
+fi
 
 # ── HexStrike AI ──────────────────────────────────────────────────────────────
 echo "Installing HexStrike AI (cybersecurity multi-agent framework)..."
@@ -137,6 +173,26 @@ pip3 install --upgrade -r requirements.txt
 deactivate
 cd "$repo_root"
 echo "HexStrike AI installed. To run: cd hexstrike-ai && source hexstrike_env/bin/activate && python3 hexstrike_server.py"
+if command -v systemctl &>/dev/null; then
+  cat > /etc/systemd/system/hexstrike-ai.service <<EOF
+[Unit]
+Description=HexStrike AI cybersecurity multi-agent server
+After=network-online.target ollama.service
+
+[Service]
+Type=simple
+WorkingDirectory=$HEXSTRIKE_DIR
+ExecStart=$HEXSTRIKE_DIR/hexstrike_env/bin/python3 $HEXSTRIKE_DIR/hexstrike_server.py
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl daemon-reload
+  systemctl enable hexstrike-ai
+  echo "HexStrike AI systemd service enabled (auto-starts on boot)."
+fi
 
 # ── Wazuh SIEM ───────────────────────────────────────────────────────────────
 echo "Installing Wazuh SIEM (open-source security information and event management)..."
@@ -156,5 +212,27 @@ cd "$repo_root"
 echo "Wazuh SIEM is running — dashboard at https://localhost:443"
 echo "  Default credentials: admin / SecretPassword"
 echo "  IMPORTANT: Change the default password immediately after first login."
+if command -v systemctl &>/dev/null; then
+  cat > /etc/systemd/system/wazuh-siem.service <<EOF
+[Unit]
+Description=Wazuh SIEM single-node stack
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=$WAZUH_DIR/single-node
+ExecStart=$(command -v docker) compose up -d
+ExecStop=$(command -v docker) compose down
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl daemon-reload
+  systemctl enable wazuh-siem
+  echo "Wazuh SIEM systemd service enabled (auto-starts on boot)."
+fi
 
 echo "automatic-happiness is ready."
