@@ -10,13 +10,22 @@ curl -fsSL https://ollama.com/install.sh | sh
 echo "ollama installed successfully."
 
 echo "Installing Open WebUI (AI agent) via Docker..."
-docker run -d \
-  --name open-webui \
-  --restart always \
-  --network host \
-  -v open-webui:/app/backend/data \
-  -e OLLAMA_BASE_URL=http://127.0.0.1:11434 \
-  ghcr.io/open-webui/open-webui:main
-echo "Open WebUI installed and running at http://localhost:8080"
+if ! command -v docker &>/dev/null; then
+  echo "Error: Docker is not installed or not in PATH. Please install Docker first." >&2
+  exit 1
+fi
+if docker ps -a --format '{{.Names}}' | grep -q '^open-webui$'; then
+  echo "open-webui container already exists — skipping creation."
+  docker start open-webui 2>/dev/null || true
+else
+  docker run -d \
+    --name open-webui \
+    --restart always \
+    --network host \
+    -v open-webui:/app/backend/data \
+    -e OLLAMA_BASE_URL=http://127.0.0.1:11434 \
+    ghcr.io/open-webui/open-webui:main
+fi
+echo "Open WebUI is running at http://localhost:8080"
 
 echo "automatic-happiness is ready."
