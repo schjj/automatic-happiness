@@ -62,6 +62,12 @@ else
     --network host \
     -v open-webui:/app/backend/data \
     -e OLLAMA_BASE_URL=http://127.0.0.1:11434 \
+    -e WEBUI_AUTH=False \
+    -e ENABLE_SIGNUP=False \
+    -e DEFAULT_MODELS=llama3.1 \
+    -e ENABLE_COMMUNITY_SHARING=False \
+    -e ENABLE_MESSAGE_RATING=False \
+    -e ENABLE_TELEMETRY=False \
     ghcr.io/open-webui/open-webui:main
 fi
 echo "Open WebUI is running at http://localhost:8080"
@@ -90,6 +96,22 @@ if ! command -v pip3 &>/dev/null; then
 fi
 pip3 install --upgrade open-interpreter
 echo "Open Interpreter installed. Run: interpreter"
+# Configure Open Interpreter to use local ollama instead of OpenAI.
+# Write config for the invoking user (may differ from root when using sudo).
+if [ -n "${SUDO_USER:-}" ]; then
+  OI_HOME="$(getent passwd "$SUDO_USER" | cut -d: -f6)"
+else
+  OI_HOME="$HOME"
+fi
+OI_CONFIG_DIR="$OI_HOME/.config/open-interpreter"
+mkdir -p "$OI_CONFIG_DIR"
+cat > "$OI_CONFIG_DIR/config.yaml" <<'EOF'
+llm:
+  model: ollama/llama3.1
+  api_base: http://localhost:11434
+  api_key: ollama
+EOF
+echo "Open Interpreter configured to use local ollama (llama3.1)."
 
 # ── n8n ───────────────────────────────────────────────────────────────────────
 echo "Installing n8n (visual workflow automation with AI/LLM nodes)..."
@@ -102,7 +124,16 @@ else
     --restart always \
     -p 5678:5678 \
     -v n8n_data:/home/node/.n8n \
+    -e N8N_AI_ENABLED=true \
+    -e N8N_AI_PROVIDER=ollama \
+    -e N8N_AI_OLLAMA_BASE_URL=http://host-gateway:11434 \
+    -e N8N_DIAGNOSTICS_ENABLED=false \
+    -e N8N_VERSION_NOTIFICATIONS_ENABLED=false \
+    -e N8N_PERSONALIZATION_ENABLED=false \
+    --add-host=host-gateway:host-gateway \
     n8nio/n8n:latest
+  # host-gateway resolves to the Docker host IP so the container can reach
+  # the ollama service running on the host at port 11434.
 fi
 echo "n8n is running at http://localhost:5678"
 
@@ -132,14 +163,14 @@ if command -v systemctl &>/dev/null; then
 [Unit]
 Description=Firecrawl LLM web scraper
 Requires=docker.service
-After=docker.service network-online.target
+After=docker.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=$FIRECRAWL_DIR
-ExecStart=$(command -v docker) compose up -d
-ExecStop=$(command -v docker) compose down
+ExecStart=docker compose up -d
+ExecStop=docker compose down
 TimeoutStartSec=120
 
 [Install]
@@ -177,7 +208,7 @@ if command -v systemctl &>/dev/null; then
   cat > /etc/systemd/system/hexstrike-ai.service <<EOF
 [Unit]
 Description=HexStrike AI cybersecurity multi-agent server
-After=network-online.target ollama.service
+After=ollama.service
 
 [Service]
 Type=simple
@@ -217,14 +248,14 @@ if command -v systemctl &>/dev/null; then
 [Unit]
 Description=Wazuh SIEM single-node stack
 Requires=docker.service
-After=docker.service network-online.target
+After=docker.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=$WAZUH_DIR/single-node
-ExecStart=$(command -v docker) compose up -d
-ExecStop=$(command -v docker) compose down
+ExecStart=docker compose up -d
+ExecStop=docker compose down
 TimeoutStartSec=180
 
 [Install]
