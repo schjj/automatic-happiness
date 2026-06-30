@@ -92,4 +92,26 @@ else
 fi
 echo "n8n is running at http://localhost:5678"
 
+# ── Firecrawl ─────────────────────────────────────────────────────────────────
+echo "Installing Firecrawl (LLM-optimized web scraper)..."
+if ! command -v docker compose &>/dev/null && ! command -v docker-compose &>/dev/null; then
+  echo "Error: docker compose is not available. Please install Docker Compose." >&2
+  exit 1
+fi
+FIRECRAWL_DIR="$repo_root/firecrawl"
+if [ ! -d "$FIRECRAWL_DIR" ]; then
+  git clone --depth 1 https://github.com/mendableai/firecrawl.git "$FIRECRAWL_DIR"
+fi
+cd "$FIRECRAWL_DIR"
+if [ ! -f .env ]; then
+  cp .env.example .env
+fi
+if docker compose &>/dev/null 2>&1; then
+  docker compose up -d
+else
+  docker-compose up -d
+fi
+cd "$repo_root"
+echo "Firecrawl API is running at http://localhost:3002"
+
 echo "automatic-happiness is ready."
