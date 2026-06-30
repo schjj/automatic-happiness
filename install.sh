@@ -29,6 +29,10 @@ echo "Pulling llama3.1 (offline ChatGPT-equivalent model)..."
 ollama pull llama3.1
 echo "llama3.1 pulled successfully."
 
+echo "Pulling hermes3 (NousResearch Hermes 3 agentic model)..."
+ollama pull hermes3
+echo "hermes3 pulled successfully."
+
 echo "Installing Open WebUI (AI agent) via Docker..."
 if ! command -v docker &>/dev/null; then
   echo "Error: Docker is not installed or not in PATH. Please install Docker first." >&2
