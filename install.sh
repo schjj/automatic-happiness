@@ -351,4 +351,45 @@ echo "OSINT Octopus installed."
 echo "  To run: cd osint-octopus && source osint_octopus_env/bin/activate && python3 osint_octopus.py"
 echo "  Populate API keys in: $OSINT_OCTOPUS_DIR/.env"
 
+# ── Pegasus-DoxStream ─────────────────────────────────────────────────────────
+echo "Installing Pegasus-DoxStream (OSINT investigation tool)..."
+PEGASUS_DIR="$repo_root/pegasus-doxstream"
+if [ ! -d "$PEGASUS_DIR" ]; then
+  git clone --depth 1 https://github.com/sobri3195/Pegasus-DoxStream.git "$PEGASUS_DIR"
+fi
+cd "$PEGASUS_DIR"
+python3 -m venv pegasus_env
+if [ ! -f pegasus_env/bin/activate ]; then
+  echo "Error: Python venv creation failed for Pegasus-DoxStream." >&2
+  exit 1
+fi
+# shellcheck disable=SC1091
+source pegasus_env/bin/activate
+pip3 install --upgrade -r requirements.txt
+deactivate
+cd "$repo_root"
+echo "Pegasus-DoxStream installed."
+echo "  To run: cd pegasus-doxstream && source pegasus_env/bin/activate && streamlit run app.py"
+echo "  Dashboard: http://localhost:8501"
+if command -v systemctl &>/dev/null; then
+  cat > /etc/systemd/system/pegasus-doxstream.service <<EOF
+[Unit]
+Description=Pegasus-DoxStream OSINT investigation tool
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=$PEGASUS_DIR
+ExecStart=$PEGASUS_DIR/pegasus_env/bin/streamlit run app.py --server.address 127.0.0.1 --server.port 8501
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl daemon-reload
+  systemctl enable pegasus-doxstream
+  echo "Pegasus-DoxStream systemd service enabled (auto-starts on boot)."
+fi
+
 echo "automatic-happiness is ready."
