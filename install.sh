@@ -114,4 +114,19 @@ fi
 cd "$repo_root"
 echo "Firecrawl API is running at http://localhost:3002"
 
+# ── HexStrike AI ──────────────────────────────────────────────────────────────
+echo "Installing HexStrike AI (cybersecurity multi-agent framework)..."
+HEXSTRIKE_DIR="$repo_root/hexstrike-ai"
+if [ ! -d "$HEXSTRIKE_DIR" ]; then
+  git clone --depth 1 https://github.com/0x4m4/hexstrike-ai.git "$HEXSTRIKE_DIR"
+fi
+cd "$HEXSTRIKE_DIR"
+python3 -m venv hexstrike_env
+# shellcheck disable=SC1091
+source hexstrike_env/bin/activate
+pip3 install --upgrade -r requirements.txt
+deactivate
+cd "$repo_root"
+echo "HexStrike AI installed. To run: cd hexstrike-ai && source hexstrike_env/bin/activate && python3 hexstrike_server.py"
+
 echo "automatic-happiness is ready."
