@@ -10,8 +10,20 @@ curl -fsSL https://ollama.com/install.sh | sh
 echo "ollama installed successfully."
 
 echo "Starting ollama service..."
-ollama serve &>/dev/null &
-sleep 2
+if ! pgrep -x ollama &>/dev/null; then
+  ollama serve &>/dev/null &
+fi
+echo "Waiting for ollama to be ready..."
+for i in $(seq 1 30); do
+  if curl -sf http://127.0.0.1:11434 &>/dev/null; then
+    break
+  fi
+  if [ "$i" -eq 30 ]; then
+    echo "Error: ollama service did not become ready in time." >&2
+    exit 1
+  fi
+  sleep 1
+done
 
 echo "Pulling llama3.1 (offline ChatGPT-equivalent model)..."
 ollama pull llama3.1
