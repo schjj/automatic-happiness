@@ -138,4 +138,23 @@ deactivate
 cd "$repo_root"
 echo "HexStrike AI installed. To run: cd hexstrike-ai && source hexstrike_env/bin/activate && python3 hexstrike_server.py"
 
+# ── Wazuh SIEM ───────────────────────────────────────────────────────────────
+echo "Installing Wazuh SIEM (open-source security information and event management)..."
+WAZUH_DIR="$repo_root/wazuh-docker"
+if [ ! -d "$WAZUH_DIR" ]; then
+  git clone --depth 1 --branch v4.12.0 https://github.com/wazuh/wazuh-docker.git "$WAZUH_DIR"
+fi
+cd "$WAZUH_DIR/single-node"
+if docker compose version &>/dev/null 2>&1; then
+  docker compose -f generate-indexer-certs.yml run --rm generator
+  docker compose up -d
+else
+  docker-compose -f generate-indexer-certs.yml run --rm generator
+  docker-compose up -d
+fi
+cd "$repo_root"
+echo "Wazuh SIEM is running — dashboard at https://localhost:443"
+echo "  Default credentials: admin / SecretPassword"
+echo "  IMPORTANT: Change the default password immediately after first login."
+
 echo "automatic-happiness is ready."
