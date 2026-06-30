@@ -52,4 +52,44 @@ else
 fi
 echo "Open WebUI is running at http://localhost:8080"
 
+# ── SearXNG ──────────────────────────────────────────────────────────────────
+echo "Installing SearXNG (self-hosted private search engine)..."
+if docker ps -a --format '{{.Names}}' | grep -q '^searxng$'; then
+  echo "searxng container already exists — skipping creation."
+  docker start searxng 2>/dev/null || true
+else
+  docker run -d \
+    --name searxng \
+    --restart always \
+    -p 8888:8080 \
+    -v searxng:/etc/searxng \
+    -e SEARXNG_BASE_URL=http://localhost:8888 \
+    searxng/searxng:latest
+fi
+echo "SearXNG is running at http://localhost:8888"
+
+# ── Open Interpreter ─────────────────────────────────────────────────────────
+echo "Installing Open Interpreter (AI code execution agent)..."
+if ! command -v pip3 &>/dev/null; then
+  echo "Error: pip3 is not installed. Please install Python 3 with pip." >&2
+  exit 1
+fi
+pip3 install --quiet open-interpreter
+echo "Open Interpreter installed. Run: interpreter"
+
+# ── n8n ───────────────────────────────────────────────────────────────────────
+echo "Installing n8n (visual workflow automation with AI/LLM nodes)..."
+if docker ps -a --format '{{.Names}}' | grep -q '^n8n$'; then
+  echo "n8n container already exists — skipping creation."
+  docker start n8n 2>/dev/null || true
+else
+  docker run -d \
+    --name n8n \
+    --restart always \
+    -p 5678:5678 \
+    -v n8n_data:/home/node/.n8n \
+    n8nio/n8n:latest
+fi
+echo "n8n is running at http://localhost:5678"
+
 echo "automatic-happiness is ready."
