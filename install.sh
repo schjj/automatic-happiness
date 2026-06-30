@@ -74,7 +74,7 @@ if ! command -v pip3 &>/dev/null; then
   echo "Error: pip3 is not installed. Please install Python 3 with pip." >&2
   exit 1
 fi
-pip3 install --quiet open-interpreter
+pip3 install --upgrade open-interpreter
 echo "Open Interpreter installed. Run: interpreter"
 
 # ── n8n ───────────────────────────────────────────────────────────────────────
