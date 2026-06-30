@@ -122,8 +122,17 @@ if [ ! -d "$HEXSTRIKE_DIR" ]; then
 fi
 cd "$HEXSTRIKE_DIR"
 python3 -m venv hexstrike_env
+if [ ! -f hexstrike_env/bin/activate ]; then
+  echo "Error: Python venv creation failed for HexStrike AI." >&2
+  exit 1
+fi
 # shellcheck disable=SC1091
 source hexstrike_env/bin/activate
+if [ ! -f requirements.txt ]; then
+  echo "Error: requirements.txt not found in HexStrike AI repository." >&2
+  deactivate
+  exit 1
+fi
 pip3 install --upgrade -r requirements.txt
 deactivate
 cd "$repo_root"
