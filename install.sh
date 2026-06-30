@@ -266,4 +266,89 @@ EOF
   echo "Wazuh SIEM systemd service enabled (auto-starts on boot)."
 fi
 
+# ── Sentinel OSINT ────────────────────────────────────────────────────────────
+echo "Installing Sentinel OSINT (tactical intelligence dashboard)..."
+if ! command -v node &>/dev/null || ! command -v npm &>/dev/null; then
+  echo "Error: Node.js and npm are required for Sentinel OSINT. Please install Node.js first." >&2
+  exit 1
+fi
+SENTINEL_OSINT_DIR="$repo_root/sentinel-osint"
+if [ ! -d "$SENTINEL_OSINT_DIR" ]; then
+  git clone --depth 1 https://github.com/hasanerman/sentinel-osint.git "$SENTINEL_OSINT_DIR"
+fi
+cd "$SENTINEL_OSINT_DIR/backend"
+npm install
+cd "$SENTINEL_OSINT_DIR/frontend"
+npm install
+npm run build
+cd "$repo_root"
+if command -v systemctl &>/dev/null; then
+  node_bin="$(command -v node)"
+  cat > /etc/systemd/system/sentinel-osint-backend.service <<EOF
+[Unit]
+Description=Sentinel OSINT backend API server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=$SENTINEL_OSINT_DIR/backend
+ExecStart=$node_bin server.js
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  cat > /etc/systemd/system/sentinel-osint-frontend.service <<EOF
+[Unit]
+Description=Sentinel OSINT frontend (Vite preview)
+After=sentinel-osint-backend.service
+
+[Service]
+Type=simple
+WorkingDirectory=$SENTINEL_OSINT_DIR/frontend
+ExecStart=$SENTINEL_OSINT_DIR/frontend/node_modules/.bin/vite preview --host 127.0.0.1 --port 5173
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl daemon-reload
+  systemctl enable sentinel-osint-backend sentinel-osint-frontend
+  systemctl start sentinel-osint-backend sentinel-osint-frontend
+  echo "Sentinel OSINT systemd services enabled and started."
+fi
+echo "Sentinel OSINT API:       http://localhost:5000"
+echo "Sentinel OSINT Dashboard: http://localhost:5173"
+
+# ── OSINT Octopus ─────────────────────────────────────────────────────────────
+echo "Installing OSINT Octopus (multi-tool OSINT aggregator)..."
+OSINT_OCTOPUS_DIR="$repo_root/osint-octopus"
+if [ ! -d "$OSINT_OCTOPUS_DIR" ]; then
+  git clone --depth 1 https://github.com/Maxwell747/OSINT-OCTOPUS.git "$OSINT_OCTOPUS_DIR"
+fi
+cd "$OSINT_OCTOPUS_DIR"
+python3 -m venv osint_octopus_env
+if [ ! -f osint_octopus_env/bin/activate ]; then
+  echo "Error: Python venv creation failed for OSINT Octopus." >&2
+  exit 1
+fi
+# shellcheck disable=SC1091
+source osint_octopus_env/bin/activate
+pip3 install --upgrade -r requirements.txt
+deactivate
+if [ ! -f .env ]; then
+  if [ -f env_template.txt ]; then
+    cp env_template.txt .env
+    echo "OSINT Octopus .env created — populate API keys in $OSINT_OCTOPUS_DIR/.env"
+  else
+    echo "Warning: env_template.txt not found in OSINT Octopus repo — create $OSINT_OCTOPUS_DIR/.env manually." >&2
+  fi
+fi
+cd "$repo_root"
+echo "OSINT Octopus installed."
+echo "  To run: cd osint-octopus && source osint_octopus_env/bin/activate && python3 osint_octopus.py"
+echo "  Populate API keys in: $OSINT_OCTOPUS_DIR/.env"
+
 echo "automatic-happiness is ready."

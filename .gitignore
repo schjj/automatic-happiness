@@ -57,3 +57,5 @@ Makefile
 /firecrawl/
 /hexstrike-ai/
 /wazuh-docker/
+/sentinel-osint/
+/osint-octopus/
