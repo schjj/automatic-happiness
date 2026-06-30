@@ -9,6 +9,14 @@ echo "Installing ollama via https://ollama.com/install.sh ..."
 curl -fsSL https://ollama.com/install.sh | sh
 echo "ollama installed successfully."
 
+echo "Starting ollama service..."
+ollama serve &>/dev/null &
+sleep 2
+
+echo "Pulling llama3.1 (offline ChatGPT-equivalent model)..."
+ollama pull llama3.1
+echo "llama3.1 pulled successfully."
+
 echo "Installing Open WebUI (AI agent) via Docker..."
 if ! command -v docker &>/dev/null; then
   echo "Error: Docker is not installed or not in PATH. Please install Docker first." >&2
