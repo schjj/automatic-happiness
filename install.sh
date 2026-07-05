@@ -392,4 +392,29 @@ EOF
   echo "Pegasus-DoxStream systemd service enabled (auto-starts on boot)."
 fi
 
+# ── Google Cloud SDK (gcloud) ─────────────────────────────────────────────────
+echo "Installing Google Cloud SDK (gcloud)..."
+if command -v gcloud &>/dev/null; then
+  echo "gcloud is already installed — skipping."
+else
+  # Install via the official apt repository (Debian/Ubuntu).
+  if command -v apt-get &>/dev/null; then
+    curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+      | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] \
+https://packages.cloud.google.com/apt cloud-sdk main" \
+      > /etc/apt/sources.list.d/google-cloud-sdk.list
+    apt-get update -qq
+    apt-get install -y google-cloud-cli
+  else
+    # Fallback: install via the interactive installer script.
+    curl -fsSL https://sdk.cloud.google.com | bash -s -- --disable-prompts
+    # Add gcloud to PATH for subsequent commands in this script.
+    export PATH="$HOME/google-cloud-sdk/bin:$PATH"
+  fi
+fi
+echo "gcloud installed. Version: $(gcloud --version 2>&1 | head -1)"
+echo "  Authenticate with: gcloud auth login"
+echo "  Set project with:  gcloud config set project YOUR_PROJECT_ID"
+
 echo "automatic-happiness is ready."
