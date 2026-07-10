@@ -417,4 +417,132 @@ echo "gcloud installed. Version: $(gcloud --version 2>&1 | head -1)"
 echo "  Authenticate with: gcloud auth login"
 echo "  Set project with:  gcloud config set project YOUR_PROJECT_ID"
 
+# ── Tor ───────────────────────────────────────────────────────────────────────
+echo "Installing Tor (anonymous overlay network for dark web access)..."
+if command -v apt-get &>/dev/null; then
+  apt-get install -y tor torsocks
+elif command -v dnf &>/dev/null; then
+  dnf install -y tor torsocks
+elif command -v pacman &>/dev/null; then
+  pacman -S --noconfirm tor torsocks
+else
+  echo "Warning: Could not detect package manager — install Tor manually." >&2
+fi
+if command -v systemctl &>/dev/null; then
+  systemctl enable --now tor
+fi
+echo "Tor installed and running."
+echo "  SOCKS5 proxy: 127.0.0.1:9050"
+echo "  Prefix any command with 'torsocks' to route it through Tor."
+
+# ── OnionSearch ───────────────────────────────────────────────────────────────
+echo "Installing OnionSearch (dark web .onion search aggregator)..."
+ONIONSEARCH_DIR="$repo_root/onionsearch"
+if [ ! -d "$ONIONSEARCH_DIR" ]; then
+  git clone --depth 1 https://github.com/megadose/OnionSearch.git "$ONIONSEARCH_DIR"
+fi
+cd "$ONIONSEARCH_DIR"
+python3 -m venv onionsearch_env
+if [ ! -f onionsearch_env/bin/activate ]; then
+  echo "Error: Python venv creation failed for OnionSearch." >&2
+  exit 1
+fi
+# shellcheck disable=SC1091
+source onionsearch_env/bin/activate
+pip3 install --upgrade -r requirements.txt 2>/dev/null || pip3 install --upgrade .
+deactivate
+cd "$repo_root"
+echo "OnionSearch installed."
+echo "  To run: cd onionsearch && source onionsearch_env/bin/activate && python3 onionsearch.py --query <term>"
+echo "  NOTE: Tor must be running (port 9050) for .onion searches."
+
+# ── theHarvester ──────────────────────────────────────────────────────────────
+echo "Installing theHarvester (OSINT — emails, subdomains, hosts, IPs)..."
+THEHARVESTER_DIR="$repo_root/theHarvester"
+if [ ! -d "$THEHARVESTER_DIR" ]; then
+  git clone --depth 1 https://github.com/laramies/theHarvester.git "$THEHARVESTER_DIR"
+fi
+cd "$THEHARVESTER_DIR"
+python3 -m venv theharvester_env
+if [ ! -f theharvester_env/bin/activate ]; then
+  echo "Error: Python venv creation failed for theHarvester." >&2
+  exit 1
+fi
+# shellcheck disable=SC1091
+source theharvester_env/bin/activate
+pip3 install --upgrade -r requirements/base.txt
+deactivate
+cd "$repo_root"
+echo "theHarvester installed."
+echo "  To run: cd theHarvester && source theharvester_env/bin/activate && python3 theHarvester.py -d example.com -b all"
+
+# ── Recon-ng ──────────────────────────────────────────────────────────────────
+echo "Installing Recon-ng (modular OSINT reconnaissance framework)..."
+RECONNG_DIR="$repo_root/recon-ng"
+if [ ! -d "$RECONNG_DIR" ]; then
+  git clone --depth 1 https://github.com/lanmaster53/recon-ng.git "$RECONNG_DIR"
+fi
+cd "$RECONNG_DIR"
+python3 -m venv reconng_env
+if [ ! -f reconng_env/bin/activate ]; then
+  echo "Error: Python venv creation failed for Recon-ng." >&2
+  exit 1
+fi
+# shellcheck disable=SC1091
+source reconng_env/bin/activate
+pip3 install --upgrade -r REQUIREMENTS
+deactivate
+cd "$repo_root"
+echo "Recon-ng installed."
+echo "  To run: cd recon-ng && source reconng_env/bin/activate && python3 recon-ng"
+
+# ── SpiderFoot ────────────────────────────────────────────────────────────────
+echo "Installing SpiderFoot (automated OSINT collection and visualization)..."
+SPIDERFOOT_DIR="$repo_root/spiderfoot"
+if [ ! -d "$SPIDERFOOT_DIR" ]; then
+  git clone --depth 1 https://github.com/smicallef/spiderfoot.git "$SPIDERFOOT_DIR"
+fi
+cd "$SPIDERFOOT_DIR"
+python3 -m venv spiderfoot_env
+if [ ! -f spiderfoot_env/bin/activate ]; then
+  echo "Error: Python venv creation failed for SpiderFoot." >&2
+  exit 1
+fi
+# shellcheck disable=SC1091
+source spiderfoot_env/bin/activate
+pip3 install --upgrade -r requirements.txt
+deactivate
+cd "$repo_root"
+echo "SpiderFoot installed."
+echo "  To run: cd spiderfoot && source spiderfoot_env/bin/activate && python3 sf.py -l 127.0.0.1:5009"
+echo "  Dashboard: http://127.0.0.1:5009"
+if command -v systemctl &>/dev/null; then
+  cat > /etc/systemd/system/spiderfoot.service <<EOF
+[Unit]
+Description=SpiderFoot automated OSINT tool
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=$SPIDERFOOT_DIR
+ExecStart=$SPIDERFOOT_DIR/spiderfoot_env/bin/python3 $SPIDERFOOT_DIR/sf.py -l 127.0.0.1:5009
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl daemon-reload
+  systemctl enable spiderfoot
+  echo "SpiderFoot systemd service enabled (auto-starts on boot)."
+fi
+
+# ── Shodan CLI ────────────────────────────────────────────────────────────────
+echo "Installing Shodan CLI (internet-exposed device and service OSINT)..."
+pip3 install --upgrade shodan
+echo "Shodan CLI installed."
+echo "  Initialize with your API key: shodan init YOUR_API_KEY"
+echo "  Example search: shodan search 'apache country:US'"
+echo "  Get a free API key at: https://account.shodan.io/"
+
 echo "automatic-happiness is ready."
