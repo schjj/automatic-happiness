@@ -545,4 +545,42 @@ echo "  Initialize with your API key: shodan init YOUR_API_KEY"
 echo "  Example search: shodan search 'apache country:US'"
 echo "  Get a free API key at: https://account.shodan.io/"
 
+# ── H8mail ────────────────────────────────────────────────────────────────────
+echo "Installing H8mail (email breach and dark web leak checker)..."
+pip3 install --upgrade h8mail
+echo "H8mail installed."
+echo "  Check an email: h8mail -t your@email.com"
+echo "  For richer results, add API keys to a config: h8mail --config h8mail_config.ini"
+echo "  Supported sources: HaveIBeenPwned, Hunter.io, Dehashed, and more."
+
+# ── Holehe ────────────────────────────────────────────────────────────────────
+echo "Installing Holehe (check which online services an email is registered on)..."
+pip3 install --upgrade holehe
+echo "Holehe installed."
+echo "  Check an email: holehe your@email.com"
+
+# ── PhoneInfoga ───────────────────────────────────────────────────────────────
+echo "Installing PhoneInfoga (phone number OSINT and dark web scan)..."
+PHONEINFOGA_VERSION="v2.11.0"
+PHONEINFOGA_BIN="/usr/local/bin/phoneinfoga"
+if [ ! -f "$PHONEINFOGA_BIN" ]; then
+  arch="$(uname -m)"
+  case "$arch" in
+    x86_64)  PHONEINFOGA_ARCH="amd64" ;;
+    aarch64) PHONEINFOGA_ARCH="arm64" ;;
+    *)        PHONEINFOGA_ARCH="amd64" ;;
+  esac
+  curl -fsSL \
+    "https://github.com/sundowndev/phoneinfoga/releases/download/${PHONEINFOGA_VERSION}/phoneinfoga_Linux_${PHONEINFOGA_ARCH}.tar.gz" \
+    -o /tmp/phoneinfoga.tar.gz
+  tar -xzf /tmp/phoneinfoga.tar.gz -C /tmp phoneinfoga
+  mv /tmp/phoneinfoga "$PHONEINFOGA_BIN"
+  chmod +x "$PHONEINFOGA_BIN"
+  rm -f /tmp/phoneinfoga.tar.gz
+fi
+echo "PhoneInfoga installed."
+echo "  Scan a number: phoneinfoga scan -n +1XXXXXXXXXX"
+echo "  Launch web UI: phoneinfoga serve"
+echo "  Web UI:        http://localhost:5000"
+
 echo "automatic-happiness is ready."
