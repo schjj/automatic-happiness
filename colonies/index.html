@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Colonies – Board Game</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ── Setup Screen ─────────────────────────────────────── -->
+  <div id="setup-screen" class="screen">
+    <div class="setup-box">
+      <h1>🏝️ Colonies</h1>
+      <p class="subtitle">A resource-building board game for 2–4 players</p>
+      <label>
+        Number of players
+        <select id="player-count">
+          <option value="2">2 Players</option>
+          <option value="3" selected>3 Players</option>
+          <option value="4">4 Players</option>
+        </select>
+      </label>
+      <div id="player-names"></div>
+      <button id="start-btn">Start Game</button>
+      <div class="rules-summary">
+        <h3>Quick Rules</h3>
+        <ul>
+          <li>🎲 Roll dice → adjacent settlements collect resources</li>
+          <li>🏠 Settlement = 1 VP, City = 2 VP</li>
+          <li>🛣️ Longest road (≥5) = 2 VP</li>
+          <li>🏆 First to <strong>10 Victory Points</strong> wins</li>
+          <li>Build with: Wood+Brick=Road, Wood+Brick+Grain+Sheep=Settlement,
+              Ore×3+Grain×2=City</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Game Screen ──────────────────────────────────────── -->
+  <div id="game-screen" class="screen hidden">
+    <div id="top-bar">
+      <span id="turn-label"></span>
+      <span id="phase-label"></span>
+      <button id="end-turn-btn" class="action-btn" disabled>End Turn</button>
+    </div>
+
+    <div id="main-area">
+      <canvas id="board-canvas"></canvas>
+
+      <div id="side-panel">
+        <!-- Scoreboard -->
+        <div class="panel-section" id="scoreboard-section">
+          <h3>Scores</h3>
+          <div id="scoreboard"></div>
+        </div>
+
+        <!-- Current player resources -->
+        <div class="panel-section">
+          <h3>Your Resources</h3>
+          <div id="resource-display"></div>
+        </div>
+
+        <!-- Dice -->
+        <div class="panel-section">
+          <h3>Dice</h3>
+          <div id="dice-area">
+            <div id="dice-display">
+              <span id="die1" class="die">?</span>
+              <span id="die2" class="die">?</span>
+            </div>
+            <button id="roll-btn" class="action-btn">🎲 Roll Dice</button>
+          </div>
+        </div>
+
+        <!-- Build actions -->
+        <div class="panel-section">
+          <h3>Build</h3>
+          <div id="build-area">
+            <button class="build-btn" data-action="road">🛣️ Road<br/><small>Wood+Brick</small></button>
+            <button class="build-btn" data-action="settlement">🏠 Settlement<br/><small>W+B+Grain+Sheep</small></button>
+            <button class="build-btn" data-action="city">🏙️ City<br/><small>3×Ore+2×Grain</small></button>
+          </div>
+        </div>
+
+        <!-- Trade -->
+        <div class="panel-section">
+          <h3>Trade (4:1 Bank)</h3>
+          <div id="trade-area">
+            <div>
+              <label>Give 4×<select id="trade-give"></select></label>
+              <label>Get 1×<select id="trade-get"></select></label>
+              <button id="trade-btn" class="action-btn">Trade</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Log -->
+        <div class="panel-section" id="log-section">
+          <h3>Log</h3>
+          <div id="game-log"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Win Screen ───────────────────────────────────────── -->
+  <div id="win-screen" class="screen hidden">
+    <div class="win-box">
+      <div id="win-emoji">🏆</div>
+      <h1 id="win-message"></h1>
+      <div id="final-scores"></div>
+      <button id="play-again-btn">Play Again</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

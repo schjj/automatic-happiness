@@ -1,0 +1,249 @@
+/* ── Reset & Base ────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #1a1a2e;
+  --surface:  #16213e;
+  --accent:   #e94560;
+  --gold:     #f5a623;
+  --text:     #eaeaea;
+  --muted:    #8892b0;
+  --radius:   10px;
+  --shadow:   0 4px 20px rgba(0,0,0,.5);
+
+  /* resource colours */
+  --wood:   #6b8e23;
+  --brick:  #b5451b;
+  --ore:    #7a7a8c;
+  --grain:  #d4a017;
+  --sheep:  #4caf50;
+  --desert: #c8a96e;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Screens ─────────────────────────────────────────────── */
+.screen { width: 100%; height: 100vh; display: flex; align-items: center; justify-content: center; }
+.hidden { display: none !important; }
+
+/* ── Setup ───────────────────────────────────────────────── */
+.setup-box {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 40px 48px;
+  max-width: 520px;
+  width: 94%;
+  text-align: center;
+}
+.setup-box h1 { font-size: 2.6rem; margin-bottom: .2em; }
+.subtitle { color: var(--muted); margin-bottom: 1.8em; }
+
+.setup-box label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 1em;
+  font-size: .9rem;
+  color: var(--muted);
+}
+.setup-box select, .setup-box input[type="text"] {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #334;
+  background: #0f3460;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+#player-names { margin-bottom: 1em; text-align: left; }
+#player-names label { margin-bottom: .6em; }
+
+.rules-summary {
+  margin-top: 1.6em;
+  text-align: left;
+  background: rgba(255,255,255,.04);
+  border-radius: 8px;
+  padding: 16px 20px;
+  font-size: .85rem;
+  color: var(--muted);
+}
+.rules-summary h3 { color: var(--gold); margin-bottom: .5em; }
+.rules-summary ul { padding-left: 1.2em; line-height: 1.9; }
+
+/* ── Buttons ─────────────────────────────────────────────── */
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  transition: transform .1s, opacity .15s;
+}
+button:active { transform: scale(.97); }
+button:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+#start-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-top: .5em;
+}
+#start-btn:hover:not(:disabled) { background: #ff6b6b; }
+
+.action-btn {
+  padding: 9px 18px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.action-btn:hover:not(:disabled) { background: #ff6b6b; }
+
+.build-btn {
+  width: 100%;
+  padding: 9px 12px;
+  background: #0f3460;
+  color: var(--text);
+  font-size: .82rem;
+  text-align: left;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+.build-btn:hover:not(:disabled) { background: #164080; }
+.build-btn.active { outline: 2px solid var(--gold); }
+
+/* ── Top Bar ─────────────────────────────────────────────── */
+#top-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgba(0,0,0,.4);
+  z-index: 10;
+}
+#turn-label  { font-weight: 700; font-size: 1rem; }
+#phase-label { color: var(--gold); font-size: .9rem; flex: 1; }
+
+/* ── Main Area ───────────────────────────────────────────── */
+#game-screen { flex-direction: column; align-items: stretch; overflow: hidden; }
+#main-area {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  gap: 0;
+}
+
+#board-canvas {
+  flex: 1;
+  display: block;
+  cursor: default;
+}
+
+/* ── Side Panel ──────────────────────────────────────────── */
+#side-panel {
+  width: 240px;
+  min-width: 200px;
+  background: var(--surface);
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: -2px 0 10px rgba(0,0,0,.3);
+}
+.panel-section {
+  background: rgba(255,255,255,.04);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.panel-section h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 8px; }
+
+/* ── Scoreboard ──────────────────────────────────────────── */
+#scoreboard { display: flex; flex-direction: column; gap: 4px; }
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .88rem;
+  padding: 4px 6px;
+  border-radius: 5px;
+}
+.score-row.current-turn { background: rgba(255,255,255,.08); font-weight: 700; }
+.player-dot {
+  width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+}
+.score-vp { margin-left: auto; color: var(--gold); font-weight: 700; }
+
+/* ── Resources ───────────────────────────────────────────── */
+#resource-display { display: flex; flex-wrap: wrap; gap: 5px; }
+.res-chip {
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: .78rem;
+  font-weight: 700;
+  color: #fff;
+}
+.res-chip.wood  { background: var(--wood); }
+.res-chip.brick { background: var(--brick); }
+.res-chip.ore   { background: var(--ore); }
+.res-chip.grain { background: var(--grain); }
+.res-chip.sheep { background: var(--sheep); }
+
+/* ── Dice ────────────────────────────────────────────────── */
+#dice-area { display: flex; flex-direction: column; gap: 8px; }
+#dice-display { display: flex; gap: 10px; }
+.die {
+  width: 40px; height: 40px;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  font-size: 1.4rem;
+  font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── Trade ───────────────────────────────────────────────── */
+#trade-area label { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: .83rem; color: var(--muted); }
+#trade-area select { background: #0f3460; color: var(--text); border: 1px solid #334; border-radius: 4px; padding: 3px 6px; font-size: .83rem; }
+
+/* ── Log ─────────────────────────────────────────────────── */
+#game-log {
+  max-height: 140px;
+  overflow-y: auto;
+  font-size: .78rem;
+  color: var(--muted);
+  line-height: 1.7;
+}
+#game-log p { border-bottom: 1px solid rgba(255,255,255,.04); padding: 2px 0; }
+
+/* ── Win Screen ──────────────────────────────────────────── */
+.win-box {
+  text-align: center;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 60px 70px;
+  box-shadow: var(--shadow);
+}
+#win-emoji { font-size: 5rem; margin-bottom: .2em; }
+.win-box h1 { font-size: 2rem; margin-bottom: .8em; }
+#final-scores { color: var(--muted); margin-bottom: 1.6em; line-height: 2; }
+#play-again-btn {
+  padding: 14px 36px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+#play-again-btn:hover { background: #ff6b6b; }
