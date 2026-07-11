@@ -59,3 +59,13 @@ Makefile
 /wazuh-docker/
 /sentinel-osint/
 /osint-octopus/
+
+# Node / npm
+node_modules/
+
+# Android build artifacts
+android/.gradle/
+android/app/build/
+android/build/
+*.apk
+*.aab

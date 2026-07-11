@@ -1,0 +1,25 @@
+{
+  "name": "automatic-happiness",
+  "version": "1.0.0",
+  "description": "Colonies board game – web app packaged for Android via Capacitor",
+  "scripts": {
+    "sync": "cap sync android",
+    "open:android": "cap open android"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/schjj/automatic-happiness.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/schjj/automatic-happiness/issues"
+  },
+  "homepage": "https://github.com/schjj/automatic-happiness#readme",
+  "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1"
+  }
+}
