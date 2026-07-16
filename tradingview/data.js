@@ -1,0 +1,219 @@
+/* =============================================================
+   data.js – Price engine
+   Provides simulated OHLCV candle history and live tick updates,
+   with an optional Finnhub REST API layer for real quotes.
+   ============================================================= */
+
+'use strict';
+
+// ── Default watchlist symbols ───────────────────────────────
+const DEFAULT_SYMBOLS = ['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'AMZN'];
+
+// ── Simulated seed prices ───────────────────────────────────
+const SEED_PRICES = {
+  AAPL:  188.50,
+  MSFT:  415.20,
+  GOOGL: 175.30,
+  TSLA:  248.60,
+  AMZN:  195.80,
+  NVDA:  875.40,
+  META:  490.10,
+  NFLX:  632.50,
+  SPY:   527.30,
+  QQQ:   455.60,
+  BTC:   67450.00,
+  ETH:   3580.00,
+};
+
+const DEFAULT_SEED = 100.00;
+
+// ── Timeframe bar lengths in seconds ───────────────────────
+const TF_SECONDS = { '1m': 60, '5m': 300, '15m': 900, '1h': 3600, '1d': 86400 };
+const TF_BARS    = { '1m': 120, '5m': 120, '15m': 100, '1h': 90,  '1d': 252 };
+
+// ── DataEngine ─────────────────────────────────────────────
+class DataEngine {
+  constructor() {
+    this._apiKey    = localStorage.getItem('tv_api_key') || '';
+    this._listeners = [];          // fn(symbol, candle, isLive)
+    this._tickers   = {};          // symbol → { price, bid, ask, change, changePct }
+    this._history   = {};          // symbol → { tf → [candle] }
+    this._timers    = {};          // symbol → intervalId
+
+    for (const sym of DEFAULT_SYMBOLS) this._initSymbol(sym);
+  }
+
+  // ── Public API ────────────────────────────────────────────
+
+  setApiKey(key) {
+    this._apiKey = key.trim();
+    localStorage.setItem('tv_api_key', this._apiKey);
+  }
+
+  hasApiKey() { return this._apiKey.length > 10; }
+
+  addSymbol(symbol) {
+    const sym = symbol.toUpperCase().trim();
+    if (!sym || this._tickers[sym]) return;
+    this._initSymbol(sym);
+  }
+
+  removeSymbol(symbol) {
+    const sym = symbol.toUpperCase();
+    clearInterval(this._timers[sym]);
+    delete this._timers[sym];
+    delete this._tickers[sym];
+    delete this._history[sym];
+  }
+
+  getSymbols() { return Object.keys(this._tickers); }
+
+  getTicker(symbol) { return this._tickers[symbol] || null; }
+
+  /** Returns a copy of the candle array for a symbol+timeframe */
+  getHistory(symbol, tf) {
+    return (this._history[symbol] && this._history[symbol][tf])
+      ? [...this._history[symbol][tf]]
+      : [];
+  }
+
+  /** Register a callback: fn(symbol, latestCandle, isLiveUpdate) */
+  subscribe(fn) { this._listeners.push(fn); }
+
+  // ── Initialisation ────────────────────────────────────────
+
+  _initSymbol(sym) {
+    const seed = SEED_PRICES[sym] || DEFAULT_SEED;
+    this._tickers[sym] = { price: seed, bid: seed - 0.01, ask: seed + 0.01, change: 0, changePct: 0 };
+    this._history[sym] = {};
+
+    for (const tf of Object.keys(TF_SECONDS)) {
+      this._history[sym][tf] = this._generateHistory(seed, tf);
+    }
+
+    this._scheduleTick(sym);
+    this._tryFetchRealQuote(sym);
+  }
+
+  /** Build synthetic OHLCV history going backwards from now */
+  _generateHistory(seed, tf) {
+    const barCount = TF_BARS[tf];
+    const barSec   = TF_SECONDS[tf];
+    const now      = Math.floor(Date.now() / 1000);
+    const candles  = [];
+
+    let price = seed;
+    // Walk backwards to build history, then reverse
+    const raw = [];
+    for (let i = barCount; i >= 0; i--) {
+      const t = now - i * barSec;
+      const vol = (tf === '1d')
+        ? _randInt(5_000_000, 80_000_000)
+        : _randInt(50_000, 2_000_000);
+
+      const drift   = (Math.random() - 0.492) * 0.002;
+      const change  = price * (drift + (Math.random() - 0.5) * 0.012);
+      const open    = price;
+      price        += change;
+      if (price < 0.01) price = 0.01;
+      const high  = Math.max(open, price) * (1 + Math.random() * 0.005);
+      const low   = Math.min(open, price) * (1 - Math.random() * 0.005);
+      raw.push({ t, o: +open.toFixed(4), h: +high.toFixed(4), l: +low.toFixed(4), c: +price.toFixed(4), v: vol });
+    }
+    return raw;
+  }
+
+  /** Simulate a live tick every 2-4 seconds per symbol */
+  _scheduleTick(sym) {
+    const tickFn = () => {
+      if (this.hasApiKey()) {
+        this._tryFetchRealQuote(sym);
+      } else {
+        this._simulateTick(sym);
+      }
+    };
+    // Stagger intervals to avoid all symbols firing simultaneously
+    const interval = 3000 + Math.random() * 2000;
+    this._timers[sym] = setInterval(tickFn, interval);
+  }
+
+  _simulateTick(sym) {
+    const tk = this._tickers[sym];
+    const drift  = (Math.random() - 0.492) * 0.001;
+    const change = tk.price * (drift + (Math.random() - 0.5) * 0.008);
+    const newPrice = Math.max(0.01, tk.price + change);
+
+    const open1d    = this._history[sym]['1d'][0]?.o ?? newPrice;
+    tk.price     = +newPrice.toFixed(4);
+    tk.bid       = +(newPrice - Math.random() * 0.05).toFixed(4);
+    tk.ask       = +(newPrice + Math.random() * 0.05).toFixed(4);
+    tk.change    = +(newPrice - open1d).toFixed(4);
+    tk.changePct = +((tk.change / open1d) * 100).toFixed(2);
+
+    // Update last candle in each timeframe
+    const nowSec = Math.floor(Date.now() / 1000);
+    for (const tf of Object.keys(TF_SECONDS)) {
+      const bars   = this._history[sym][tf];
+      const barSec = TF_SECONDS[tf];
+      const last   = bars[bars.length - 1];
+
+      if (!last || nowSec >= last.t + barSec) {
+        // Start new bar
+        const newBar = {
+          t: last ? last.t + barSec : nowSec,
+          o: tk.price, h: tk.price, l: tk.price, c: tk.price,
+          v: _randInt(10_000, 500_000),
+        };
+        bars.push(newBar);
+        if (bars.length > TF_BARS[tf] + 20) bars.shift();
+      } else {
+        // Update last bar
+        last.c = tk.price;
+        last.h = Math.max(last.h, tk.price);
+        last.l = Math.min(last.l, tk.price);
+        last.v += _randInt(1_000, 50_000);
+      }
+    }
+
+    this._notify(sym, this._history[sym]['1m'].at(-1));
+  }
+
+  /** Try to fetch a real quote from Finnhub */
+  _tryFetchRealQuote(sym) {
+    if (!this.hasApiKey()) return;
+    const url = `https://finnhub.io/api/v1/quote?symbol=${sym}&token=${this._apiKey}`;
+    fetch(url)
+      .then(r => r.json())
+      .then(data => {
+        if (!data || !data.c) return;
+        const tk = this._tickers[sym];
+        tk.price     = data.c;
+        tk.bid       = data.c - 0.01;
+        tk.ask       = data.c + 0.01;
+        tk.change    = +(data.c - data.pc).toFixed(4);
+        tk.changePct = +((tk.change / data.pc) * 100).toFixed(2);
+        // Also patch the last candle close
+        const last1m = this._history[sym]['1m'].at(-1);
+        if (last1m) {
+          last1m.c = data.c;
+          last1m.h = Math.max(last1m.h, data.c);
+          last1m.l = Math.min(last1m.l, data.c);
+        }
+        this._notify(sym, last1m);
+      })
+      .catch(() => {
+        // fall back to simulation on network error
+        this._simulateTick(sym);
+      });
+  }
+
+  _notify(sym, candle) {
+    for (const fn of this._listeners) fn(sym, candle, true);
+  }
+}
+
+// ── Helpers ────────────────────────────────────────────────
+function _randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+// ── Singleton ──────────────────────────────────────────────
+const dataEngine = new DataEngine();

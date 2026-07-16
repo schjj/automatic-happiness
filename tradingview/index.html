@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TraderView – Paper Trading Platform</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── Top Bar ───────────────────────────────────────────── -->
+  <header id="topbar">
+    <div id="brand">📈 TraderView</div>
+
+    <div id="symbol-search-wrap">
+      <input id="symbol-input" type="text" placeholder="Search symbol… e.g. AAPL" maxlength="10" autocomplete="off" />
+      <button id="symbol-add-btn">Add</button>
+    </div>
+
+    <div id="api-wrap">
+      <input id="api-key-input" type="text" placeholder="Finnhub API key (optional)" autocomplete="off" />
+      <button id="api-save-btn">Save Key</button>
+      <span id="api-status"></span>
+    </div>
+
+    <div id="cash-display">
+      Cash: <strong id="cash-value">$100,000.00</strong>
+    </div>
+  </header>
+
+  <!-- ── Main Layout ────────────────────────────────────────── -->
+  <div id="main-layout">
+
+    <!-- Watchlist -->
+    <aside id="watchlist-panel">
+      <h2>Watchlist</h2>
+      <ul id="watchlist"></ul>
+    </aside>
+
+    <!-- Chart area -->
+    <section id="chart-section">
+      <div id="chart-header">
+        <span id="chart-symbol">—</span>
+        <span id="chart-price">—</span>
+        <span id="chart-change"></span>
+        <span id="chart-bid-ask"></span>
+        <div id="timeframe-btns">
+          <button class="tf-btn active" data-tf="1m">1m</button>
+          <button class="tf-btn" data-tf="5m">5m</button>
+          <button class="tf-btn" data-tf="15m">15m</button>
+          <button class="tf-btn" data-tf="1h">1h</button>
+          <button class="tf-btn" data-tf="1d">1d</button>
+        </div>
+        <div id="overlay-btns">
+          <button class="ov-btn active" data-ov="sma20">SMA 20</button>
+          <button class="ov-btn active" data-ov="sma50">SMA 50</button>
+          <button class="ov-btn active" data-ov="volume">Volume</button>
+        </div>
+      </div>
+      <canvas id="chart-canvas"></canvas>
+    </section>
+
+    <!-- Right panel: order entry + portfolio -->
+    <aside id="right-panel">
+
+      <!-- Order entry -->
+      <div class="panel-box" id="order-box">
+        <h3>Order Entry</h3>
+        <div id="order-tabs">
+          <button class="order-tab active" data-side="buy">Buy</button>
+          <button class="order-tab" data-side="sell">Sell</button>
+        </div>
+        <label>Type
+          <select id="order-type">
+            <option value="market">Market</option>
+            <option value="limit">Limit</option>
+          </select>
+        </label>
+        <label id="limit-price-wrap" class="hidden">Limit Price
+          <input id="limit-price" type="number" min="0.01" step="0.01" placeholder="0.00" />
+        </label>
+        <label>Quantity (shares)
+          <input id="order-qty" type="number" min="1" step="1" value="1" />
+        </label>
+        <div id="order-preview"></div>
+        <button id="order-submit-btn">Submit Order</button>
+        <div id="order-message"></div>
+      </div>
+
+      <!-- Positions -->
+      <div class="panel-box" id="positions-box">
+        <h3>Positions</h3>
+        <div id="positions-table-wrap">
+          <table id="positions-table">
+            <thead>
+              <tr><th>Symbol</th><th>Shares</th><th>Avg</th><th>Value</th><th>P&amp;L</th></tr>
+            </thead>
+            <tbody id="positions-body"></tbody>
+          </table>
+          <p id="positions-empty" class="empty-msg">No open positions</p>
+        </div>
+      </div>
+
+      <!-- Trade history -->
+      <div class="panel-box" id="history-box">
+        <h3>Trade History</h3>
+        <div id="history-list"></div>
+        <p id="history-empty" class="empty-msg">No trades yet</p>
+      </div>
+
+    </aside>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="charts.js"></script>
+  <script src="portfolio.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
