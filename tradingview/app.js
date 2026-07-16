@@ -69,7 +69,7 @@ const apiKeyInput  = document.getElementById('api-key-input');
 const apiSaveBtn   = document.getElementById('api-save-btn');
 const apiStatusEl  = document.getElementById('api-status');
 
-apiKeyInput.value = localStorage.getItem('tv_api_key') || '';
+apiKeyInput.value = dataEngine.hasApiKey() ? '••••••••••••••••' : '';
 _updateApiStatus();
 
 apiSaveBtn.addEventListener('click', () => {
@@ -214,15 +214,36 @@ function _renderPortfolio() {
 function _addWatchlistRow(sym) {
   const li = document.createElement('li');
   li.dataset.sym = sym;
-  li.innerHTML = `
-    <div class="wl-top">
-      <span class="wl-symbol">${sym}</span>
-      <span class="wl-price">—</span>
-    </div>
-    <span class="wl-change">—</span>
-    <canvas class="sparkline-canvas" width="140" height="26"></canvas>
-    <button class="wl-remove" title="Remove">✕</button>
-  `;
+
+  const top = document.createElement('div');
+  top.className = 'wl-top';
+  const symSpan = document.createElement('span');
+  symSpan.className = 'wl-symbol';
+  symSpan.textContent = sym;
+  const priceSpan = document.createElement('span');
+  priceSpan.className = 'wl-price';
+  priceSpan.textContent = '—';
+  top.appendChild(symSpan);
+  top.appendChild(priceSpan);
+
+  const changeSpan = document.createElement('span');
+  changeSpan.className = 'wl-change';
+  changeSpan.textContent = '—';
+
+  const sparkCanvas = document.createElement('canvas');
+  sparkCanvas.className = 'sparkline-canvas';
+  sparkCanvas.width  = 140;
+  sparkCanvas.height = 26;
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'wl-remove';
+  removeBtn.title = 'Remove';
+  removeBtn.textContent = '✕';
+
+  li.appendChild(top);
+  li.appendChild(changeSpan);
+  li.appendChild(sparkCanvas);
+  li.appendChild(removeBtn);
   li.addEventListener('click', e => {
     if (e.target.classList.contains('wl-remove')) return;
     _selectSymbol(sym);
