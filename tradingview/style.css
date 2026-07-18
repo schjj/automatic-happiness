@@ -81,6 +81,11 @@ html, body {
 }
 
 #api-status { font-size: .8rem; color: var(--muted); }
+#coinbase-status {
+  font-size: .8rem;
+  color: var(--green);
+  white-space: nowrap;
+}
 
 #cash-display {
   white-space: nowrap;

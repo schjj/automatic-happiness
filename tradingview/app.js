@@ -65,9 +65,10 @@ function _onAddSymbol() {
 }
 
 // ── API key ───────────────────────────────────────────────
-const apiKeyInput  = document.getElementById('api-key-input');
-const apiSaveBtn   = document.getElementById('api-save-btn');
-const apiStatusEl  = document.getElementById('api-status');
+const apiKeyInput      = document.getElementById('api-key-input');
+const apiSaveBtn       = document.getElementById('api-save-btn');
+const apiStatusEl      = document.getElementById('api-status');
+const coinbaseStatusEl = document.getElementById('coinbase-status');
 
 apiKeyInput.value = dataEngine.hasApiKey() ? '••••••••••••••••' : '';
 _updateApiStatus();
@@ -78,8 +79,11 @@ apiSaveBtn.addEventListener('click', () => {
   _flash(apiStatusEl, 'Saved ✓', 'var(--green)');
 });
 
-function _updateApiStatus() {
-  apiStatusEl.textContent = dataEngine.hasApiKey() ? '🟢 Live' : '🟡 Simulated';
+function _updateApiStatus(sym) {
+  sym = sym || activeSymbol;
+  const isCrypto = sym && dataEngine.hasCoinbase(sym);
+  apiStatusEl.textContent = dataEngine.hasApiKey() ? '🟢 Finnhub Live' : '🟡 Simulated';
+  coinbaseStatusEl.style.display = isCrypto ? '' : 'none';
 }
 
 // ── DataEngine subscription ───────────────────────────────
@@ -289,6 +293,7 @@ function _selectSymbol(sym) {
   chartRenderer.setCandles(dataEngine.getHistory(sym, activeTf));
   _updateChartHeader(sym);
   _updatePreview();
+  _updateApiStatus(sym);
 }
 
 function _updateChartHeader(sym) {

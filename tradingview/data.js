@@ -6,6 +6,22 @@
 
 'use strict';
 
+// ── Coinbase Exchange product IDs for supported crypto symbols ──
+const COINBASE_PRODUCTS = {
+  BTC:  'BTC-USD',
+  ETH:  'ETH-USD',
+  LTC:  'LTC-USD',
+  SOL:  'SOL-USD',
+  DOGE: 'DOGE-USD',
+  XRP:  'XRP-USD',
+  ADA:  'ADA-USD',
+  AVAX: 'AVAX-USD',
+  MATIC:'MATIC-USD',
+  DOT:  'DOT-USD',
+};
+
+const COINBASE_API_BASE = 'https://api.exchange.coinbase.com/products';
+
 // ── Default watchlist symbols ───────────────────────────────
 const DEFAULT_SYMBOLS = ['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'AMZN'];
 
@@ -52,6 +68,9 @@ class DataEngine {
 
   hasApiKey() { return this._apiKey.length > 10; }
 
+  /** Returns true when a symbol can be priced via the Coinbase public API */
+  hasCoinbase(symbol) { return Object.prototype.hasOwnProperty.call(COINBASE_PRODUCTS, symbol); }
+
   addSymbol(symbol) {
     const sym = symbol.toUpperCase().trim();
     if (!sym || this._tickers[sym]) return;
@@ -92,7 +111,11 @@ class DataEngine {
     }
 
     this._scheduleTick(sym);
-    this._tryFetchRealQuote(sym);
+    if (this.hasCoinbase(sym)) {
+      this._tryFetchCoinbaseQuote(sym);
+    } else {
+      this._tryFetchRealQuote(sym);
+    }
   }
 
   /** Build synthetic OHLCV history going backwards from now */
@@ -126,7 +149,9 @@ class DataEngine {
   /** Simulate a live tick every 2-4 seconds per symbol */
   _scheduleTick(sym) {
     const tickFn = () => {
-      if (this.hasApiKey()) {
+      if (this.hasCoinbase(sym)) {
+        this._tryFetchCoinbaseQuote(sym);
+      } else if (this.hasApiKey()) {
         this._tryFetchRealQuote(sym);
       } else {
         this._simulateTick(sym);
@@ -205,6 +230,36 @@ class DataEngine {
         // fall back to simulation on network error
         this._simulateTick(sym);
       });
+  }
+
+  /** Fetch a live crypto quote from the Coinbase Exchange public API (no key needed) */
+  _tryFetchCoinbaseQuote(sym) {
+    const productId = COINBASE_PRODUCTS[sym];
+    if (!productId) { this._simulateTick(sym); return; }
+    const url = `${COINBASE_API_BASE}/${productId}/ticker`;
+    fetch(url)
+      .then(r => r.json())
+      .then(data => {
+        if (!data || !data.price) return;
+        const price  = parseFloat(data.price);
+        if (!isFinite(price) || price <= 0) return;
+        const tk     = this._tickers[sym];
+        const open1d = this._history[sym]['1d'][0]?.o ?? price;
+        tk.price     = +price.toFixed(4);
+        tk.bid       = data.bid  ? +parseFloat(data.bid).toFixed(4)  : +(price - price * 0.0001).toFixed(4);
+        tk.ask       = data.ask  ? +parseFloat(data.ask).toFixed(4)  : +(price + price * 0.0001).toFixed(4);
+        tk.change    = +(price - open1d).toFixed(4);
+        tk.changePct = open1d ? +((tk.change / open1d) * 100).toFixed(2) : 0;
+        // Patch the last 1-minute candle close
+        const last1m = this._history[sym]['1m'].at(-1);
+        if (last1m) {
+          last1m.c = tk.price;
+          last1m.h = Math.max(last1m.h, tk.price);
+          last1m.l = Math.min(last1m.l, tk.price);
+        }
+        this._notify(sym, last1m);
+      })
+      .catch(() => this._simulateTick(sym));
   }
 
   _notify(sym, candle) {

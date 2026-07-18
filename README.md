@@ -80,7 +80,7 @@ A paper (simulated) stock trading platform in `tradingview/`. Open
 
 - **Candlestick chart** with SMA-20, SMA-50 overlays, volume bars, and crosshair tooltip
 - **Timeframes**: 1m · 5m · 15m · 1h · 1d
-- **Live ticks**: prices update every few seconds via simulation (or real quotes via Finnhub)
+- **Live ticks**: prices update every few seconds via simulation (or real quotes via Finnhub / Coinbase)
 - **Watchlist**: add any ticker symbol, mini sparklines, real-time P&L colour coding
 - **Order entry**: market and limit orders (buy/sell) with cost preview and validation
 - **Portfolio**: $100,000 virtual starting cash, open positions table with live P&L
@@ -96,10 +96,17 @@ open tradingview/index.html
 python3 -m http.server 8080   # then visit http://localhost:8080/tradingview/
 ```
 
-### Live market data (optional)
+### Live market data
+
+**Crypto symbols** (BTC, ETH, LTC, SOL, DOGE, XRP, ADA, AVAX, MATIC, DOT) are automatically
+priced in real-time using the **[Coinbase Exchange public API](https://docs.cdp.coinbase.com/exchange/reference/)**
+— no API key or account required.  A **₿ Coinbase Live** badge is shown in the top bar whenever
+a crypto symbol is selected.
+
+**Stock symbols** use simulated data by default. To enable real-time stock quotes:
 
 1. Get a free API key at [finnhub.io](https://finnhub.io)
 2. Paste it into the **Finnhub API key** field in the top bar and click **Save Key**
-3. The status indicator changes from 🟡 Simulated → 🟢 Live
+3. The status indicator changes from 🟡 Simulated → 🟢 Finnhub Live
 
-Without a key the platform runs entirely on simulated price data.
+Without a Finnhub key, stock symbols run on simulated price data.
