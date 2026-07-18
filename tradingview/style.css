@@ -87,6 +87,24 @@ html, body {
   white-space: nowrap;
 }
 
+#av-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#av-key-input {
+  width: 220px;
+  padding: 5px 9px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: .85rem;
+}
+
+#av-status { font-size: .8rem; color: var(--muted); }
+
 #cash-display {
   white-space: nowrap;
   font-size: .9rem;

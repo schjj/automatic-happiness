@@ -64,7 +64,7 @@ function _onAddSymbol() {
   input.value = '';
 }
 
-// ── API key ───────────────────────────────────────────────
+// ── API key (Finnhub) ─────────────────────────────────────
 const apiKeyInput      = document.getElementById('api-key-input');
 const apiSaveBtn       = document.getElementById('api-save-btn');
 const apiStatusEl      = document.getElementById('api-status');
@@ -79,10 +79,37 @@ apiSaveBtn.addEventListener('click', () => {
   _flash(apiStatusEl, 'Saved ✓', 'var(--green)');
 });
 
+// ── API key (Alpha Vantage) ───────────────────────────────
+const avKeyInput  = document.getElementById('av-key-input');
+const avSaveBtn   = document.getElementById('av-save-btn');
+const avStatusEl  = document.getElementById('av-status');
+
+avKeyInput.value = dataEngine.hasAvKey() ? '••••••••••••••••' : '';
+_updateAvStatus();
+
+avSaveBtn.addEventListener('click', () => {
+  dataEngine.setAvKey(avKeyInput.value);
+  _updateAvStatus();
+  _updateApiStatus();
+  _flash(avStatusEl, 'Saved ✓', 'var(--green)');
+});
+
+function _updateAvStatus() {
+  avStatusEl.textContent = dataEngine.hasAvKey() ? '🟢 AV Live' : '🟡 Not set';
+}
+
 function _updateApiStatus(sym) {
   sym = sym || activeSymbol;
   const isCrypto = sym && dataEngine.hasCoinbase(sym);
-  apiStatusEl.textContent = dataEngine.hasApiKey() ? '🟢 Finnhub Live' : '🟡 Simulated';
+  if (isCrypto) {
+    apiStatusEl.textContent = '—';
+  } else if (dataEngine.hasAvKey()) {
+    apiStatusEl.textContent = '🟢 Alpha Vantage Live';
+  } else if (dataEngine.hasApiKey()) {
+    apiStatusEl.textContent = '🟢 Finnhub Live';
+  } else {
+    apiStatusEl.textContent = '🟡 Simulated';
+  }
   coinbaseStatusEl.style.display = isCrypto ? '' : 'none';
 }
 

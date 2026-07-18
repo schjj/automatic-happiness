@@ -103,10 +103,23 @@ priced in real-time using the **[Coinbase Exchange public API](https://docs.cdp.
 — no API key or account required.  A **₿ Coinbase Live** badge is shown in the top bar whenever
 a crypto symbol is selected.
 
-**Stock symbols** use simulated data by default. To enable real-time stock quotes:
+**Stock symbols** support two optional live-data providers (in priority order):
+
+#### 1. Alpha Vantage (recommended)
+
+1. Get a free API key at [alphavantage.co](https://www.alphavantage.co/support/#api-key) — no credit card needed
+2. Paste it into the **Alpha Vantage API key** field in the top bar and click **Save Key**
+3. The status indicator changes to 🟢 Alpha Vantage Live
+
+The free tier allows 5 requests/min and 500/day. TraderView uses a 15–20 second polling interval
+per stock symbol to stay well within those limits.
+
+#### 2. Finnhub (fallback)
 
 1. Get a free API key at [finnhub.io](https://finnhub.io)
 2. Paste it into the **Finnhub API key** field in the top bar and click **Save Key**
-3. The status indicator changes from 🟡 Simulated → 🟢 Finnhub Live
+3. The status indicator changes to 🟢 Finnhub Live
 
-Without a Finnhub key, stock symbols run on simulated price data.
+Finnhub is used for stock symbols only when no Alpha Vantage key is saved.
+
+Without any key, all symbols run entirely on simulated price data.

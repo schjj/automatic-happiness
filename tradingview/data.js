@@ -1,7 +1,8 @@
 /* =============================================================
    data.js – Price engine
    Provides simulated OHLCV candle history and live tick updates,
-   with an optional Finnhub REST API layer for real quotes.
+   with optional live-quote layers: Coinbase (crypto, no key),
+   Alpha Vantage (stocks, free API key), and Finnhub (stocks, free API key).
    ============================================================= */
 
 'use strict';
@@ -21,6 +22,8 @@ const COINBASE_PRODUCTS = {
 };
 
 const COINBASE_API_BASE = 'https://api.exchange.coinbase.com/products';
+
+const AV_API_BASE = 'https://www.alphavantage.co/query';
 
 // ── Default watchlist symbols ───────────────────────────────
 const DEFAULT_SYMBOLS = ['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'AMZN'];
@@ -51,6 +54,7 @@ const TF_BARS    = { '1m': 120, '5m': 120, '15m': 100, '1h': 90,  '1d': 252 };
 class DataEngine {
   constructor() {
     this._apiKey    = _loadApiKey();
+    this._avKey     = _loadAvKey();
     this._listeners = [];          // fn(symbol, candle, isLive)
     this._tickers   = {};          // symbol → { price, bid, ask, change, changePct }
     this._history   = {};          // symbol → { tf → [candle] }
@@ -67,6 +71,13 @@ class DataEngine {
   }
 
   hasApiKey() { return this._apiKey.length > 10; }
+
+  setAvKey(key) {
+    this._avKey = key.trim();
+    _saveAvKey(this._avKey);
+  }
+
+  hasAvKey() { return this._avKey.length > 5; }
 
   /** Returns true when a symbol can be priced via the Coinbase public API */
   hasCoinbase(symbol) { return Object.prototype.hasOwnProperty.call(COINBASE_PRODUCTS, symbol); }
@@ -113,6 +124,8 @@ class DataEngine {
     this._scheduleTick(sym);
     if (this.hasCoinbase(sym)) {
       this._tryFetchCoinbaseQuote(sym);
+    } else if (this.hasAvKey()) {
+      this._tryFetchAlphaVantageQuote(sym);
     } else {
       this._tryFetchRealQuote(sym);
     }
@@ -151,14 +164,21 @@ class DataEngine {
     const tickFn = () => {
       if (this.hasCoinbase(sym)) {
         this._tryFetchCoinbaseQuote(sym);
+      } else if (this.hasAvKey()) {
+        this._tryFetchAlphaVantageQuote(sym);
       } else if (this.hasApiKey()) {
         this._tryFetchRealQuote(sym);
       } else {
         this._simulateTick(sym);
       }
     };
-    // Stagger intervals to avoid all symbols firing simultaneously
-    const interval = 3000 + Math.random() * 2000;
+    // Stagger intervals to avoid all symbols firing simultaneously.
+    // Alpha Vantage free tier allows 5 req/min, so use a slower 15-20s interval
+    // for AV; keep the faster 3-5s interval for Coinbase and Finnhub.
+    const isAv     = !this.hasCoinbase(sym) && this.hasAvKey();
+    const base     = isAv ? 15000 : 3000;
+    const jitter   = isAv ? 5000  : 2000;
+    const interval = base + Math.random() * jitter;
     this._timers[sym] = setInterval(tickFn, interval);
   }
 
@@ -262,6 +282,38 @@ class DataEngine {
       .catch(() => this._simulateTick(sym));
   }
 
+  /**
+   * Fetch a live stock quote from Alpha Vantage GLOBAL_QUOTE endpoint.
+   * Free tier: 5 req/min, 500 req/day — the 15-20s tick interval keeps usage well below this.
+   */
+  _tryFetchAlphaVantageQuote(sym) {
+    if (!this.hasAvKey()) return;
+    const url = `${AV_API_BASE}?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(sym)}&apikey=${encodeURIComponent(this._avKey)}`;
+    fetch(url)
+      .then(r => r.json())
+      .then(data => {
+        const q = data && data['Global Quote'];
+        if (!q || !q['05. price']) return;
+        const price = parseFloat(q['05. price']);
+        const prev  = parseFloat(q['08. previous close']);
+        if (!isFinite(price) || price <= 0) return;
+        const tk     = this._tickers[sym];
+        tk.price     = +price.toFixed(4);
+        tk.bid       = +(price - price * 0.0001).toFixed(4);
+        tk.ask       = +(price + price * 0.0001).toFixed(4);
+        tk.change    = isFinite(prev) && prev > 0 ? +(price - prev).toFixed(4) : 0;
+        tk.changePct = isFinite(prev) && prev > 0 ? +((tk.change / prev) * 100).toFixed(2) : 0;
+        const last1m = this._history[sym]['1m'].at(-1);
+        if (last1m) {
+          last1m.c = tk.price;
+          last1m.h = Math.max(last1m.h, tk.price);
+          last1m.l = Math.min(last1m.l, tk.price);
+        }
+        this._notify(sym, last1m);
+      })
+      .catch(() => this._simulateTick(sym));
+  }
+
   _notify(sym, candle) {
     for (const fn of this._listeners) fn(sym, candle, true);
   }
@@ -282,6 +334,17 @@ function _saveApiKey(key) {
 
 function _loadApiKey() {
   const raw = localStorage.getItem('tv_api_key');
+  if (!raw) return '';
+  try { return atob(raw); } catch { return ''; }
+}
+
+function _saveAvKey(key) {
+  if (!key) { localStorage.removeItem('tv_av_key'); return; }
+  localStorage.setItem('tv_av_key', btoa(key));
+}
+
+function _loadAvKey() {
+  const raw = localStorage.getItem('tv_av_key');
   if (!raw) return '';
   try { return atob(raw); } catch { return ''; }
 }
